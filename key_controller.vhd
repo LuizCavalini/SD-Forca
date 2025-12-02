@@ -2,95 +2,101 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity keyboard_controller is
-    generic (WIDTH_SIZE: integer := 2);
+-- Top-level Keyboard Controller
+-- Coordinates the Receiver, Buffer, and ASCII Converter
+entity Keyboard_Controller is
     port (
-        sys_clk, reset_in: in std_logic;
-        ps2_data, ps2_clock: in std_logic;
-        read_enable: in std_logic;
-        ascii_key: out std_logic_vector(7 downto 0);
-        buffer_empty: out std_logic
+        clk, reset      : in std_logic;
+        ps2d, ps2c      : in std_logic;
+        rd_command      : in std_logic;
+        ascii_key       : out std_logic_vector(7 downto 0);
+        buffer_empty    : out std_logic
     );
-end keyboard_controller;
+end Keyboard_Controller;
 
-architecture structure of keyboard_controller is
-    constant BREAK_CODE: std_logic_vector(7 downto 0):= "11110000"; -- 'F0'
+architecture Behavioral of Keyboard_Controller is
+    -- Break Code constant (Key release)
+    constant BREAK_CODE : std_logic_vector(7 downto 0):= "11110000";
     
-    type fsm_states is (WAIT_FOR_BREAK, GET_SCAN_CODE);
-    signal current_s, next_s: fsm_states;
+    type fsm_state is (Wait_Break_Code, Retrieve_Code);
+    signal current_st, next_st : fsm_state;
     
-    signal raw_scan_code, fifo_out_data: std_logic_vector(7 downto 0);
-    signal rx_done_pulse, write_to_fifo: std_logic;
-    signal final_ascii, processed_key: std_logic_vector(7 downto 0);
+    signal raw_scan_code : std_logic_vector(7 downto 0);
+    signal scan_ready : std_logic;
+    signal code_captured : std_logic;
+    
+    signal buffered_scan_code : std_logic_vector(7 downto 0);
+    signal converted_ascii : std_logic_vector(7 downto 0);
 
 begin
 
-   -- Connect the PS/2 Receiver
-   u_receiver: entity work.ps2_receiver(rtl)
+    -- 1. Instantiate PS/2 Receiver
+    RX_Unit: entity work.PS2_Interface(Behavioral)
         port map(
-            sys_clk => sys_clk, 
-            sys_reset => reset_in, 
-            rx_enable => '1',
-            ps2_data_line => ps2_data, 
-            ps2_clk_line => ps2_clock,
-            rx_done_flag => rx_done_pulse,
-            data_out => raw_scan_code
+            clk => clk, 
+            reset => reset, 
+            rx_en => '1',
+            ps2d => ps2d, 
+            ps2c => ps2c,
+            rx_done_tick => scan_ready,
+            dout => raw_scan_code
         );
 
-   -- Connect the Buffer (FIFO)
-   u_buffer: entity work.data_buffer(behavioral)
+    -- 2. Instantiate FIFO Buffer
+    Buffer_Unit: entity work.Data_Queue(Behavioral)
         generic map(BIT_WIDTH => 8)
         port map(
-            clk => sys_clk, 
-            rst => reset_in, 
-            read_cmd => read_enable,
-            write_cmd => write_to_fifo, 
-            data_in => raw_scan_code,
-            is_empty => buffer_empty, 
-            is_full => open,
-            data_out => processed_key
+            clk => clk, 
+            reset => reset, 
+            rd => rd_command,
+            wr => code_captured, 
+            w_data => raw_scan_code,
+            empty => buffer_empty, 
+            full => open,
+            r_data => buffered_scan_code
         );
 
-   -- Connect the Converter
-   u_converter: entity work.scancode_converter(lookup)
+    -- 3. Instantiate ASCII Mapper
+    Converter_Unit: entity work.ScanCode_Mapper(Behavioral)
         port map (
-            scan_input => processed_key,
-            ascii_output => final_ascii
+            scan_in => buffered_scan_code,
+            ascii_out => converted_ascii
         );
 
-   -- State Machine to handle Break Codes (Key Release)
-   process (sys_clk, reset_in)
+    --========================================================================
+    -- FSM: Scan Code Processing
+    -- logic to filter out the 'Break' code (F0) processing
+    --========================================================================
+    process (clk, reset)
     begin
-        if reset_in='1' then
-            current_s <= WAIT_FOR_BREAK;
-        elsif rising_edge(sys_clk) then
-            current_s <= next_s;
+        if reset = '1' then
+            current_st <= Wait_Break_Code;
+        elsif rising_edge(clk) then
+            current_st <= next_st;
         end if;
     end process;
 
-   -- Logic to ignore key press and only register key release (after F0)
-   process(current_s, rx_done_pulse, raw_scan_code)
+    process(current_st, scan_ready, raw_scan_code)
     begin
-        write_to_fifo <= '0';
-        next_s <= current_s;
+        code_captured <= '0';
+        next_st <= current_st;
         
-        case current_s is
-            when WAIT_FOR_BREAK => 
-                -- Wait for the 'F0' code which indicates key release
-                if rx_done_pulse='1' and raw_scan_code = BREAK_CODE then
-                    next_s <= GET_SCAN_CODE;
+        case current_st is
+            -- Wait for the key release indicator (F0)
+            when Wait_Break_Code => 
+                if scan_ready = '1' and raw_scan_code = BREAK_CODE then
+                    next_st <= Retrieve_Code;
                 end if;
-                
-            when GET_SCAN_CODE => 
-                -- Capture the actual key code following 'F0'
-                if rx_done_pulse='1' then
-                    write_to_fifo <= '1';
-                    next_s <= WAIT_FOR_BREAK;
+            
+            -- Capture the actual key code that follows F0
+            when Retrieve_Code => 
+                if scan_ready = '1' then
+                    code_captured <= '1';
+                    next_st <= Wait_Break_Code;
                 end if;
         end case;
-        
-    -- Output the ASCII
-    ascii_key <= final_ascii;
     end process;
     
-end structure;
+    ascii_key <= converted_ascii;
+
+end Behavioral;
