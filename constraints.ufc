@@ -1,0 +1,49 @@
+#==============================================================================
+# Constraint File for Hangman Game Project
+# Board: Spartan-3A/3AN Starter Kit
+#==============================================================================
+
+#==============================================================================
+# SYSTEM CLOCK (50MHz)
+#==============================================================================
+NET "SYS_CLK" LOC = "E12" | IOSTANDARD = LVCMOS33;
+NET "SYS_CLK" PERIOD = 20.0ns HIGH 40%;
+
+#==============================================================================
+# SYSTEM RESET (Button East)
+#==============================================================================
+NET "RESET_BTN" LOC = "T16" | IOSTANDARD = LVCMOS33 | PULLDOWN;
+
+#==============================================================================
+# LEDS (Debug Output)
+#==============================================================================
+NET "LED_OUTPUT<7>" LOC = "W21" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "LED_OUTPUT<6>" LOC = "Y22" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "LED_OUTPUT<5>" LOC = "V20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "LED_OUTPUT<4>" LOC = "V19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "LED_OUTPUT<3>" LOC = "U19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "LED_OUTPUT<2>" LOC = "U20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "LED_OUTPUT<1>" LOC = "T19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "LED_OUTPUT<0>" LOC = "R20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+
+#==============================================================================
+# PS/2 KEYBOARD INTERFACE
+#==============================================================================
+NET "PS2_CLK_PIN"  LOC = "W12" | IOSTANDARD = LVCMOS33 | PULLUP;
+NET "PS2_DATA_PIN" LOC = "V11" | IOSTANDARD = LVCMOS33 | PULLUP;
+
+#==============================================================================
+# LCD DISPLAY INTERFACE
+#==============================================================================
+NET "LCD_E"  LOC = "AB4"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_RS" LOC = "Y14"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_RW" LOC = "W13"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+
+NET "LCD_DATA_BUS<7>" LOC = "Y15"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DATA_BUS<6>" LOC = "AB16" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DATA_BUS<5>" LOC = "Y16"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DATA_BUS<4>" LOC = "AA12" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DATA_BUS<3>" LOC = "AB12" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DATA_BUS<2>" LOC = "AB17" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DATA_BUS<1>" LOC = "AB18" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DATA_BUS<0>" LOC = "Y13"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
