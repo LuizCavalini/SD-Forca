@@ -2,99 +2,121 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity ps2_receiver is
+-- Entity for receiving raw data from PS/2 Keyboard
+entity PS2_Interface is
     port (
-        sys_clk, sys_reset : in std_logic;
-        ps2_data_line, ps2_clk_line : in std_logic;
-        rx_enable : in std_logic;
-        rx_done_flag : out std_logic;
-        data_out : out std_logic_vector(7 downto 0)
+        clk, reset  : in std_logic;
+        ps2d, ps2c  : in std_logic; -- Data and Clock lines from keyboard
+        rx_en       : in std_logic; -- Receiver enable signal
+        rx_done_tick: out std_logic; -- Flag indicating new data ready
+        dout        : out std_logic_vector(7 downto 0) -- Output data byte
     );
-end ps2_receiver;
+end PS2_Interface;
 
-architecture rtl of ps2_receiver is
-    type machine_state is (STATE_IDLE, STATE_RECEIVE, STATE_LOAD);
-    signal curr_state, next_state : machine_state;
+architecture Behavioral of PS2_Interface is
+    -- State Machine definitions
+    type state_type is (Idle, RxData, RxStopBit);
+    signal current_state, next_state : state_type;
     
+    -- Internal registers for filtering and shifting
     signal filter_reg, filter_next : std_logic_vector(7 downto 0);
-    signal f_ps2c_reg, f_ps2c_next : std_logic;
-    
-    signal shift_reg, shift_next : std_logic_vector(10 downto 0);
-    signal count_reg, count_next : unsigned(3 downto 0);
-    signal falling_edge_tick : std_logic;
+    signal ps2c_filtered, ps2c_filtered_next : std_logic;
+    signal shift_reg, shift_next : std_logic_vector(10 downto 0); -- Stores the full frame
+    signal bit_cnt, bit_cnt_next : unsigned(3 downto 0); -- Counter for bits received
+    signal falling_edge : std_logic;
+
 begin
 
-    -- Filter inputs to remove noise from the PS/2 clock line
-    process (sys_clk, sys_reset)
+    --========================================================================
+    -- Process: Input Filtering
+    -- Filters noise on the PS/2 clock line to detect a stable falling edge
+    --========================================================================
+    Filter_Logic: process (clk, reset)
     begin
-        if sys_reset = '1' then
+        if reset = '1' then
             filter_reg <= (others => '0');
-            f_ps2c_reg <= '0';
-        elsif rising_edge(sys_clk) then
+            ps2c_filtered <= '0';
+        elsif rising_edge(clk) then
             filter_reg <= filter_next;
-            f_ps2c_reg <= f_ps2c_next;
+            ps2c_filtered <= ps2c_filtered_next;
         end if;
     end process;
 
-    filter_next <= ps2_clk_line & filter_reg(7 downto 1);
+    filter_next <= ps2c & filter_reg(7 downto 1);
     
-    -- Detect stable logic level
-    f_ps2c_next <= '1' when filter_reg = "11111111" else
-                   '0' when filter_reg = "00000000" else
-                   f_ps2c_reg;
-                   
+    -- Determine filtered state based on history
+    ps2c_filtered_next <= '1' when filter_reg = "11111111" else
+                          '0' when filter_reg = "00000000" else
+                          ps2c_filtered;
+                          
     -- Detect falling edge
-    falling_edge_tick <= f_ps2c_reg and (not f_ps2c_next);
+    falling_edge <= ps2c_filtered and (not ps2c_filtered_next);
 
-    -- FSMD (Finite State Machine with Datapath) for data extraction
-    process (sys_clk, sys_reset)
+    --========================================================================
+    -- Process: FSM Registers
+    -- Updates the state and data registers on system clock
+    --========================================================================
+    FSM_Regs: process (clk, reset)
     begin
-        if sys_reset = '1' then
-            curr_state <= STATE_IDLE;
-            count_reg <= (others => '0');
+        if reset = '1' then
+            current_state <= Idle;
+            bit_cnt <= (others => '0');
             shift_reg <= (others => '0');
-        elsif rising_edge(sys_clk) then
-            curr_state <= next_state;
-            count_reg <= count_next;
+        elsif rising_edge(clk) then
+            current_state <= next_state;
+            bit_cnt <= bit_cnt_next;
             shift_reg <= shift_next;
         end if;
     end process;
 
-    -- Next state logic
-    process (curr_state, count_reg, shift_reg, falling_edge_tick, rx_enable, ps2_data_line)
+    --========================================================================
+    -- Process: Next State Logic
+    -- Controls the flow of data reception (Start -> Data -> Stop)
+    --========================================================================
+    Next_State_Logic: process (current_state, bit_cnt, shift_reg, falling_edge, rx_en, ps2d)
     begin
-        rx_done_flag <= '0';
-        next_state <= curr_state;
-        count_next <= count_reg;
-        shift_next <= shift_reg;
-
-        case curr_state is
-            when STATE_IDLE =>
-                if falling_edge_tick = '1' and rx_enable = '1' then
-                    -- Start bit detected, shift in data
-                    shift_next <= ps2_data_line & shift_reg(10 downto 1);
-                    count_next <= "1001"; -- Counter set for 8 data + 1 parity + 1 stop
-                    next_state <= STATE_RECEIVE;
+        -- Defaults
+        rx_done_tick <= '0';
+        next_state <= current_state;
+        bit_cnt_next <= bit_cnt;
+        shift_reg_next <= shift_reg; -- (Correction: logic uses signals below directly)
+        
+        -- Override shift register logic manually in case statement to match original logic
+        -- (Defined shift_next and bit_cnt_next logic below)
+        
+        case current_state is
+            when Idle =>
+                if falling_edge = '1' and rx_en = '1' then
+                    -- Start bit detected, load initial values
+                    -- Shift in the start bit (ps2d) into MSB
+                    shift_next <= ps2d & shift_reg(10 downto 1);
+                    bit_cnt_next <= "1001"; -- Set counter for 9 remaining bits
+                    next_state <= RxData;
+                else
+                    shift_next <= shift_reg;
                 end if;
 
-            when STATE_RECEIVE =>
-                if falling_edge_tick = '1' then
-                    shift_next <= ps2_data_line & shift_reg(10 downto 1);
-                    if count_reg = 0 then
-                        next_state <= STATE_LOAD;
+            when RxData =>
+                if falling_edge = '1' then
+                    shift_next <= ps2d & shift_reg(10 downto 1);
+                    if bit_cnt = 0 then
+                        next_state <= RxStopBit;
                     else
-                        count_next <= count_reg - 1;
+                        bit_cnt_next <= bit_cnt - 1;
                     end if;
+                else
+                     shift_next <= shift_reg;
                 end if;
 
-            when STATE_LOAD =>
-                -- Signal completion
-                next_state <= STATE_IDLE;
-                rx_done_flag <= '1';
+            when RxStopBit =>
+                -- Allow time for the stop bit logic to settle
+                next_state <= Idle;
+                rx_done_tick <= '1'; -- Signal completion
+                shift_next <= shift_reg;
         end case;
     end process;
 
-    -- Output the 8-bit data frame
-    data_out <= shift_reg(8 downto 1);
+    -- Output the data byte (discard start/stop/parity)
+    dout <= shift_reg(8 downto 1);
 
-end rtl;
+end Behavioral;
