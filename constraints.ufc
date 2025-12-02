@@ -1,49 +1,55 @@
 #==============================================================================
-# Constraint File for Hangman Game Project
-# Board: Spartan-3A/3AN Starter Kit
+# Constraint File (UCF) for Hangman Game Project
+# Target Board: Spartan-3A/3AN Starter Kit (XC3S700A/AN)
 #==============================================================================
 
 #==============================================================================
-# SYSTEM CLOCK (50MHz)
+# SYSTEM CLOCK
 #==============================================================================
-NET "SYS_CLK" LOC = "E12" | IOSTANDARD = LVCMOS33;
-NET "SYS_CLK" PERIOD = 20.0ns HIGH 40%;
+# 50MHz onboard oscillator
+NET "CLK" LOC = "E12" | IOSTANDARD = LVCMOS33;
+NET "CLK" PERIOD = 20.0ns HIGH 40%; -- Timing constraint for 50MHz
 
 #==============================================================================
-# SYSTEM RESET (Button East)
+# SYSTEM RESET
 #==============================================================================
-NET "RESET_BTN" LOC = "T16" | IOSTANDARD = LVCMOS33 | PULLDOWN;
+# Active high reset mapped to BTN_EAST
+NET "rst" LOC = "T16" | IOSTANDARD = LVCMOS33 | PULLDOWN;
 
 #==============================================================================
-# LEDS (Debug Output)
+# LED INDICATORS (Debug/Status)
 #==============================================================================
-NET "LED_OUTPUT<7>" LOC = "W21" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
-NET "LED_OUTPUT<6>" LOC = "Y22" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
-NET "LED_OUTPUT<5>" LOC = "V20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
-NET "LED_OUTPUT<4>" LOC = "V19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
-NET "LED_OUTPUT<3>" LOC = "U19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
-NET "LED_OUTPUT<2>" LOC = "U20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
-NET "LED_OUTPUT<1>" LOC = "T19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
-NET "LED_OUTPUT<0>" LOC = "R20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+# Driving LEDs with 8mA drive strength
+NET "tecla<7>" LOC = "W21" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "tecla<6>" LOC = "Y22" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "tecla<5>" LOC = "V20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "tecla<4>" LOC = "V19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "tecla<3>" LOC = "U19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "tecla<2>" LOC = "U20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "tecla<1>" LOC = "T19" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
+NET "tecla<0>" LOC = "R20" | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 8;
 
 #==============================================================================
 # PS/2 KEYBOARD INTERFACE
 #==============================================================================
-NET "PS2_CLK_PIN"  LOC = "W12" | IOSTANDARD = LVCMOS33 | PULLUP;
-NET "PS2_DATA_PIN" LOC = "V11" | IOSTANDARD = LVCMOS33 | PULLUP;
+# Clock and Data lines for PS/2
+NET "ps2c" LOC = "W12" | IOSTANDARD = LVCMOS33 | PULLUP;
+NET "ps2d" LOC = "V11" | IOSTANDARD = LVCMOS33 | PULLUP;
 
 #==============================================================================
 # LCD DISPLAY INTERFACE
 #==============================================================================
-NET "LCD_E"  LOC = "AB4"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_RS" LOC = "Y14"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_RW" LOC = "W13"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+# Control Signals
+NET "E"  LOC = "AB4" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "RS" LOC = "Y14" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "RW" LOC = "W13" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
 
-NET "LCD_DATA_BUS<7>" LOC = "Y15"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_DATA_BUS<6>" LOC = "AB16" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_DATA_BUS<5>" LOC = "Y16"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_DATA_BUS<4>" LOC = "AA12" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_DATA_BUS<3>" LOC = "AB12" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_DATA_BUS<2>" LOC = "AB17" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_DATA_BUS<1>" LOC = "AB18" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
-NET "LCD_DATA_BUS<0>" LOC = "Y13"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+# Data Bus (8-bit)
+NET "LCD_DB<7>" LOC = "Y15"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DB<6>" LOC = "AB16" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DB<5>" LOC = "Y16"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DB<4>" LOC = "AA12" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DB<3>" LOC = "AB12" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DB<2>" LOC = "AB17" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DB<1>" LOC = "AB18" | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
+NET "LCD_DB<0>" LOC = "Y13"  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = SLOW;
